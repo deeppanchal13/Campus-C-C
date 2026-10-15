@@ -1,0 +1,6 @@
+import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { getSupabaseAdmin, storageBucket } from "@/lib/supabase-admin";
+import { isAdmin } from "@/lib/admin-auth";
+export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) { if(!await isAdmin())redirect("/admin/login"); const { id } = await params; try { const db = getSupabaseAdmin(); const { data } = await db.from("resources").select("id,title,description,submission_reference,moderation_status,storage_path").eq("id", id).maybeSingle(); if (!data) notFound(); const { data: file } = await db.storage.from(storageBucket()).createSignedUrl(data.storage_path, 120); return <main className="page"><div className="shell"><Link href="/admin" className="text-link">← Back to moderation</Link><h1 className="page-title" style={{ marginTop: 20 }}>{data.title}</h1><p className="page-lead">Reference {data.submission_reference} · {data.moderation_status}</p>{file?.signedUrl ? <iframe className="pdf-frame" src={file.signedUrl} title="Private submission preview"/> : <div className="empty">File preview unavailable.</div>}</div></main>; } catch { notFound(); } }
